@@ -43,6 +43,41 @@ To advertise local subnets (or maintain existing ones) alongside exit node funct
 
 After modifying routes via the CLI, log into the Tailscale Admin Console, navigate to the **Machines** tab, select this device, and explicitly approve the newly advertised routes under **Edit route settings**.
 
+## Updating Tailscale
+
+> **Disclaimer:** to keep the on-device footprint low, this setup does not include an automatic update mechanism. The `tailscaled` and `tailscale` binaries must be updated manually whenever a new release comes out.
+
+To update to a newer version:
+
+1. **Stop the running daemon.**
+   ```bash
+   pkill tailscaled
+   ```
+
+2. **Download the new static binaries** for your device's architecture (typically `arm64`) from [Tailscale's official static builds](https://pkgs.tailscale.com/stable/#static). Extract the archive and locate the `tailscale` and `tailscaled` binaries inside it.
+
+3. **Transfer the new binaries onto the device**, for example via `adb push` or by downloading them directly in Termux, then replace the existing files:
+   ```bash
+   cp tailscale /data/adb/tailscale/tailscale
+   cp tailscaled /data/adb/tailscale/tailscaled
+   chmod 755 /data/adb/tailscale/tailscale /data/adb/tailscale/tailscaled
+   ```
+
+4. **Relaunch the daemon** using the same command from `master-boot.sh`, or simply reboot the device so the boot script starts the updated binaries automatically:
+   ```bash
+   env XDG_CACHE_HOME=/data/adb/tailscale \
+   /data/adb/tailscale/tailscaled \
+   --state=/data/adb/tailscale/tailscaled.state \
+   --socket=/data/adb/tailscale/tailscaled.sock &
+   ```
+
+5. **Verify the version** to confirm the update took effect:
+   ```bash
+   /data/adb/tailscale/tailscale --socket=/data/adb/tailscale/tailscaled.sock version
+   ```
+
+
+
 ## Boot Persistence (`master-boot.sh`)
 
 To ensure the routing rules, Tailscale daemon, and SSH server start automatically on reboot, the following script lives at `/data/adb/service.d/master-boot.sh`, executed by Magisk during late-start service boot.
